@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Guardian — Local Pre-Commit Security Scanner</title>
+  <meta name="description" content="A fast, local security scanner that runs before every commit. OSV CVE scanning, secret detection, and AI-powered SAST — in milliseconds." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d1117;
+      --bg2: #161b22;
+      --bg3: #21262d;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --green: #3fb950;
+      --blue: #58a6ff;
+      --orange: #d29922;
+      --red: #f85149;
+      --purple: #bc8cff;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      line-height: 1.6;
+      font-size: 16px;
+    }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* NAV */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(13, 17, 23, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 60px;
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 0.6rem;
+      font-weight: 700; font-size: 1.1rem; color: var(--text);
+      text-decoration: none;
+    }
+    .nav-logo svg { width: 28px; height: 28px; }
+    .nav-links { display: flex; gap: 1.5rem; align-items: center; }
+    .nav-links a { color: var(--muted); font-size: 0.9rem; font-weight: 500; }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+    .btn-gh {
+      display: flex; align-items: center; gap: 0.4rem;
+      background: var(--bg3); border: 1px solid var(--border);
+      color: var(--text) !important; padding: 0.4rem 0.9rem;
+      border-radius: 6px; font-size: 0.85rem; font-weight: 600;
+      transition: background 0.15s;
+    }
+    .btn-gh:hover { background: var(--border); text-decoration: none !important; }
+
+    /* HERO */
+    .hero {
+      text-align: center;
+      padding: 6rem 2rem 4rem;
+      max-width: 860px; margin: 0 auto;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      background: rgba(63, 185, 80, 0.1); border: 1px solid rgba(63, 185, 80, 0.3);
+      color: var(--green); border-radius: 999px;
+      padding: 0.25rem 0.75rem; font-size: 0.8rem; font-weight: 600;
+      margin-bottom: 1.5rem;
+    }
+    h1 {
+      font-size: clamp(2.4rem, 6vw, 3.8rem);
+      font-weight: 800; line-height: 1.15;
+      letter-spacing: -0.02em;
+      margin-bottom: 1.25rem;
+    }
+    h1 span { color: var(--green); }
+    .hero-sub {
+      font-size: 1.2rem; color: var(--muted); max-width: 580px;
+      margin: 0 auto 2.5rem;
+    }
+    .hero-actions {
+      display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;
+      margin-bottom: 3rem;
+    }
+    .btn-primary {
+      background: var(--green); color: #0d1117;
+      padding: 0.75rem 1.75rem; border-radius: 8px;
+      font-weight: 700; font-size: 1rem; display: inline-flex;
+      align-items: center; gap: 0.5rem; transition: opacity 0.15s;
+    }
+    .btn-primary:hover { opacity: 0.85; text-decoration: none; }
+    .btn-secondary {
+      background: var(--bg3); border: 1px solid var(--border);
+      color: var(--text); padding: 0.75rem 1.75rem; border-radius: 8px;
+      font-weight: 600; font-size: 1rem; display: inline-flex;
+      align-items: center; gap: 0.5rem; transition: background 0.15s;
+    }
+    .btn-secondary:hover { background: var(--border); text-decoration: none; }
+
+    /* TERMINAL */
+    .terminal {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 12px; overflow: hidden;
+      max-width: 700px; margin: 0 auto;
+      text-align: left; font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+    }
+    .terminal-bar {
+      background: var(--bg3); padding: 0.6rem 1rem;
+      display: flex; gap: 0.5rem; align-items: center;
+      border-bottom: 1px solid var(--border);
+    }
+    .dot { width: 12px; height: 12px; border-radius: 50%; }
+    .dot-r { background: #ff5f57; }
+    .dot-y { background: #febc2e; }
+    .dot-g { background: #28c840; }
+    .terminal-body { padding: 1.2rem 1.4rem; }
+    .terminal-body p { margin-bottom: 0.3rem; line-height: 1.7; }
+    .t-prompt { color: var(--green); }
+    .t-cmd { color: var(--text); }
+    .t-ok { color: var(--green); }
+    .t-warn { color: var(--orange); }
+    .t-err { color: var(--red); }
+    .t-muted { color: var(--muted); }
+    .t-info { color: var(--blue); }
+
+    /* FEATURES */
+    .section { padding: 5rem 2rem; max-width: 1080px; margin: 0 auto; }
+    .section-label {
+      font-size: 0.8rem; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--green); margin-bottom: 0.75rem;
+    }
+    .section-title {
+      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      font-weight: 800; margin-bottom: 1rem;
+    }
+    .section-sub { color: var(--muted); font-size: 1.05rem; max-width: 560px; }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.25rem; margin-top: 3rem;
+    }
+    .feature-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 12px; padding: 1.75rem;
+      transition: border-color 0.2s;
+    }
+    .feature-card:hover { border-color: #58a6ff55; }
+    .feature-icon { font-size: 2rem; margin-bottom: 1rem; }
+    .feature-card h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .feature-card p { color: var(--muted); font-size: 0.9rem; }
+
+    /* INSTALL */
+    .install-section {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 16px; padding: 3rem 2.5rem;
+      margin: 0 2rem;
+    }
+    .install-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .tab {
+      background: var(--bg3); border: 1px solid var(--border);
+      color: var(--muted); padding: 0.4rem 1rem; border-radius: 6px;
+      font-size: 0.85rem; font-weight: 600; cursor: pointer;
+      transition: all 0.15s;
+    }
+    .tab.active, .tab:hover {
+      background: var(--green); color: #0d1117; border-color: var(--green);
+    }
+    .code-block {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: 1.25rem 1.5rem;
+      font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;
+      overflow-x: auto; position: relative;
+    }
+    .code-block .comment { color: var(--muted); }
+    .code-block .cmd-line { color: var(--text); }
+    .code-block .env-var { color: var(--orange); }
+
+    /* CHECKS TABLE */
+    .checks-table { width: 100%; border-collapse: collapse; margin-top: 2rem; }
+    .checks-table th {
+      text-align: left; padding: 0.75rem 1rem;
+      font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;
+      color: var(--muted); border-bottom: 1px solid var(--border);
+    }
+    .checks-table td {
+      padding: 1rem; border-bottom: 1px solid var(--border);
+      font-size: 0.9rem; vertical-align: top;
+    }
+    .checks-table tr:last-child td { border-bottom: none; }
+    .badge {
+      display: inline-block; padding: 0.2rem 0.6rem;
+      border-radius: 4px; font-size: 0.75rem; font-weight: 700;
+    }
+    .badge-green { background: rgba(63,185,80,0.15); color: var(--green); }
+    .badge-orange { background: rgba(210,153,34,0.15); color: var(--orange); }
+    .badge-blue { background: rgba(88,166,255,0.15); color: var(--blue); }
+
+    /* CTA */
+    .cta-section {
+      text-align: center; padding: 6rem 2rem;
+      border-top: 1px solid var(--border);
+    }
+    .cta-section h2 { font-size: 2rem; font-weight: 800; margin-bottom: 1rem; }
+    .cta-section p { color: var(--muted); margin-bottom: 2rem; }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem; text-align: center;
+      color: var(--muted); font-size: 0.85rem;
+    }
+    footer a { color: var(--muted); }
+    footer a:hover { color: var(--text); }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo">
+    <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M16 2L4 7v9c0 6.6 5.2 12.8 12 14.3C22.8 28.8 28 22.6 28 16V7L16 2z" fill="#3fb950" opacity="0.2"/>
+      <path d="M16 2L4 7v9c0 6.6 5.2 12.8 12 14.3C22.8 28.8 28 22.6 28 16V7L16 2z" stroke="#3fb950" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M11 16l3.5 3.5L21 12" stroke="#3fb950" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    Guardian
+  </a>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#install">Install</a>
+    <a href="#checks">Checks</a>
+    <a href="https://github.com/bobbydeveaux/guardian" class="btn-gh">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.58 2 12.26c0 4.54 2.87 8.39 6.84 9.75.5.09.68-.22.68-.49v-1.7c-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.1-1.5-1.1-1.5-.9-.63.07-.62.07-.62 1 .07 1.52 1.05 1.52 1.05.88 1.55 2.32 1.1 2.88.84.09-.65.35-1.1.63-1.35-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05A9.38 9.38 0 0112 7.58c.85 0 1.7.12 2.5.34 1.9-1.33 2.74-1.05 2.74-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.94.68 1.9v2.82c0 .27.18.59.69.49C19.13 20.65 22 16.8 22 12.26 22 6.58 17.52 2 12 2z"/></svg>
+      GitHub
+    </a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>
+    Open Source · Free Forever
+  </div>
+  <h1>Security scanning<br/><span>before every commit</span></h1>
+  <p class="hero-sub">
+    Guardian is a fast, local pre-commit hook that catches CVEs, leaked secrets,
+    and code vulnerabilities — in milliseconds, before they hit your repo.
+  </p>
+  <div class="hero-actions">
+    <a href="#install" class="btn-primary">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v13M7 11l5 5 5-5"/><path d="M3 19h18"/></svg>
+      Get Started
+    </a>
+    <a href="https://github.com/bobbydeveaux/guardian" class="btn-secondary">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.58 2 12.26c0 4.54 2.87 8.39 6.84 9.75.5.09.68-.22.68-.49v-1.7c-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.1-1.5-1.1-1.5-.9-.63.07-.62.07-.62 1 .07 1.52 1.05 1.52 1.05.88 1.55 2.32 1.1 2.88.84.09-.65.35-1.1.63-1.35-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05A9.38 9.38 0 0112 7.58c.85 0 1.7.12 2.5.34 1.9-1.33 2.74-1.05 2.74-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.94.68 1.9v2.82c0 .27.18.59.69.49C19.13 20.65 22 16.8 22 12.26 22 6.58 17.52 2 12 2z"/></svg>
+      View on GitHub
+    </a>
+  </div>
+
+  <div class="terminal">
+    <div class="terminal-bar">
+      <div class="dot dot-r"></div>
+      <div class="dot dot-y"></div>
+      <div class="dot dot-g"></div>
+    </div>
+    <div class="terminal-body">
+      <p><span class="t-prompt">$</span> <span class="t-cmd">git commit -m "add payment integration"</span></p>
+      <p class="t-muted">Running Guardian pre-commit checks...</p>
+      <p></p>
+      <p><span class="t-ok">✓</span> <span class="t-cmd">Secrets scan</span> <span class="t-muted">— 23 files checked, 0 secrets found</span></p>
+      <p><span class="t-ok">✓</span> <span class="t-cmd">OSV CVE scan</span> <span class="t-muted">— go.mod scanned, 0 vulnerabilities</span></p>
+      <p><span class="t-warn">⚠</span> <span class="t-cmd">AI SAST</span> <span class="t-muted">— Claude Haiku analysing diff...</span></p>
+      <p></p>
+      <p><span class="t-err">✗ CRITICAL:</span> <span class="t-cmd">SQL injection risk in payment.go:47</span></p>
+      <p class="t-muted">    Raw user input passed to db.Query() without parameterisation</p>
+      <p></p>
+      <p class="t-err">Commit blocked. Fix the issue above and try again.</p>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="section" id="features">
+  <p class="section-label">Why Guardian</p>
+  <h2 class="section-title">Catch issues at the source</h2>
+  <p class="section-sub">Not after a PR review. Not in CI. Before the commit is even made.</p>
+
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">📦</div>
+      <h3>OSV Dependency Scanning</h3>
+      <p>Checks <code>go.mod</code>, <code>package.json</code>, <code>requirements.txt</code>, and <code>Gemfile.lock</code> against the Google OSV database in real-time.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔑</div>
+      <h3>Secret Detection</h3>
+      <p>15+ regex patterns covering AWS keys, GitHub tokens, Stripe secrets, JWTs, connection strings, and more. Blocks the commit instantly.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🧠</div>
+      <h3>AI-Powered SAST</h3>
+      <p>Sends your staged diff to Claude Haiku for code-level analysis — SQL injection, XSS, path traversal, hardcoded creds. Real intelligence, not just patterns.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⚡</div>
+      <h3>Millisecond Performance</h3>
+      <p>Written in Go. Runs in the background of your git workflow. No Docker, no JVM, no waiting. Just fast.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔓</div>
+      <h3>Fully Local</h3>
+      <p>No code leaves your machine except the staged diff to Claude (opt-in). No SaaS platform, no account needed, no monthly fee.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🎛️</div>
+      <h3>Granular Control</h3>
+      <p>Run all checks or skip individual ones. CI-friendly with <code>--no-color</code>. Exit codes compatible with any pipeline.</p>
+    </div>
+  </div>
+</section>
+
+<!-- INSTALL -->
+<section id="install" style="padding: 2rem 0 5rem;">
+  <div class="install-section" style="max-width:1080px; margin: 0 auto;">
+    <p class="section-label">Installation</p>
+    <h2 class="section-title">Up in 30 seconds</h2>
+
+    <div class="install-tabs">
+      <span class="tab active">Go Install</span>
+      <span class="tab">Pre-commit Hook</span>
+      <span class="tab">Manual</span>
+    </div>
+
+    <div class="code-block">
+      <p class="comment"># Install Guardian</p>
+      <p class="cmd-line">go install github.com/bobbydeveaux/guardian/app/cmd/guardian@latest</p>
+      <p></p>
+      <p class="comment"># Set your Anthropic API key (for AI SAST — optional)</p>
+      <p class="cmd-line"><span class="env-var">export</span> ANTHROPIC_API_KEY=sk-ant-...</p>
+      <p></p>
+      <p class="comment"># Install as a pre-commit hook in your repo</p>
+      <p class="cmd-line">guardian install</p>
+      <p></p>
+      <p class="comment"># That's it. Every commit is now scanned automatically.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CHECKS -->
+<section class="section" id="checks">
+  <p class="section-label">What it checks</p>
+  <h2 class="section-title">Comprehensive coverage</h2>
+
+  <table class="checks-table">
+    <thead>
+      <tr>
+        <th>Check</th>
+        <th>What it finds</th>
+        <th>Data sources</th>
+        <th>Type</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>📦 OSV CVE Scan</strong></td>
+        <td>Known vulnerabilities in Go, npm, PyPI, RubyGems dependencies</td>
+        <td>Google OSV API</td>
+        <td><span class="badge badge-green">Local + API</span></td>
+      </tr>
+      <tr>
+        <td><strong>🔑 Secrets Detection</strong></td>
+        <td>AWS keys, GitHub tokens, Stripe, Twilio, JWT, connection strings, generic passwords, 15+ patterns</td>
+        <td>Regex patterns</td>
+        <td><span class="badge badge-green">100% Local</span></td>
+      </tr>
+      <tr>
+        <td><strong>🧠 AI SAST</strong></td>
+        <td>SQL injection, XSS, path traversal, command injection, auth bypass, hardcoded secrets in logic</td>
+        <td>Claude Haiku</td>
+        <td><span class="badge badge-orange">Diff sent to API</span></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <h2>Stop committing security debt</h2>
+  <p>Guardian is free, open-source, and takes 30 seconds to install.</p>
+  <div style="display:flex; gap:1rem; justify-content:center; flex-wrap:wrap;">
+    <a href="#install" class="btn-primary">Install Now</a>
+    <a href="https://github.com/bobbydeveaux/guardian" class="btn-secondary">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.58 2 12.26c0 4.54 2.87 8.39 6.84 9.75.5.09.68-.22.68-.49v-1.7c-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.1-1.5-1.1-1.5-.9-.63.07-.62.07-.62 1 .07 1.52 1.05 1.52 1.05.88 1.55 2.32 1.1 2.88.84.09-.65.35-1.1.63-1.35-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05A9.38 9.38 0 0112 7.58c.85 0 1.7.12 2.5.34 1.9-1.33 2.74-1.05 2.74-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.94.68 1.9v2.82c0 .27.18.59.69.49C19.13 20.65 22 16.8 22 12.26 22 6.58 17.52 2 12 2z"/></svg>
+      Star on GitHub
+    </a>
+  </div>
+</section>
+
+<footer>
+  <p>Guardian is open-source under the MIT licence. Built with ❤️ and Go.</p>
+  <p style="margin-top:0.5rem;">
+    <a href="https://github.com/bobbydeveaux/guardian">GitHub</a> ·
+    <a href="https://github.com/bobbydeveaux/guardian/issues">Issues</a> ·
+    <a href="https://github.com/bobbydeveaux/guardian/blob/main/LICENSE">MIT Licence</a>
+  </p>
+</footer>
+
+</body>
+</html>
