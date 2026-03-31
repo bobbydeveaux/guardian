@@ -24,7 +24,7 @@ guardian/
 │   └── ...
 ├── website/      # Static marketing site
 │   ├── index.html
-│   └── launchpad.yaml
+│   └── stackramp.yaml
 └── README.md
 ```
 
