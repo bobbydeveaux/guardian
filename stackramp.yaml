@@ -1,5 +1,7 @@
 name: guardian
 
+domain: guardian.stackramp.io
+
 frontend:
   framework: static
   dir: website
