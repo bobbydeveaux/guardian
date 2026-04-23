@@ -54,6 +54,50 @@ guardian check --no-secrets    # skip secrets scan
 guardian check --no-color      # CI-friendly output
 ```
 
+## GitHub Action
+
+Guardian is also available as a GitHub Action to scan your repository in CI.
+
+### Basic usage
+
+```yaml
+name: Security Scan
+on: [push, pull_request]
+
+jobs:
+  guardian:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bobbydeveaux/guardian@main
+```
+
+### With Claude AI SAST enabled
+
+```yaml
+      - uses: bobbydeveaux/guardian@main
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+```
+
+### All options
+
+| Input | Default | Description |
+|-------|---------|-------------|
+| `anthropic_api_key` | `""` | Anthropic API key for Claude AI analysis. If omitted, SAST is skipped. |
+| `scan_osv` | `true` | Enable OSV dependency vulnerability scanning |
+| `scan_secrets` | `true` | Enable secrets detection |
+| `scan_sast` | `true` | Enable Claude AI SAST analysis |
+| `fail_on_findings` | `true` | Fail the workflow on CRITICAL issues or secrets |
+
+### Warn only (don't block the build)
+
+```yaml
+      - uses: bobbydeveaux/guardian@main
+        with:
+          fail_on_findings: "false"
+```
+
 ## Exit codes
 
 - `0` — all clear (or only LOW/MEDIUM warnings)

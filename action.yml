@@ -1,0 +1,39 @@
+name: "Guardian Security Scanner"
+description: "Scan your repository for dependency CVEs, hardcoded secrets, and code-level security issues powered by Claude AI"
+author: "Bobby DeVeaux"
+
+branding:
+  icon: "shield"
+  color: "blue"
+
+inputs:
+  anthropic_api_key:
+    description: "Anthropic API key for Claude AI code analysis (SAST). If omitted, SAST is skipped."
+    required: false
+    default: ""
+  scan_osv:
+    description: "Enable OSV dependency vulnerability scanning"
+    required: false
+    default: "true"
+  scan_secrets:
+    description: "Enable secrets detection"
+    required: false
+    default: "true"
+  scan_sast:
+    description: "Enable Claude AI SAST analysis"
+    required: false
+    default: "true"
+  fail_on_findings:
+    description: "Fail the workflow if CRITICAL issues or secrets are found"
+    required: false
+    default: "true"
+
+runs:
+  using: "docker"
+  image: "Dockerfile"
+  env:
+    ANTHROPIC_API_KEY: ${{ inputs.anthropic_api_key }}
+    INPUT_SCAN_OSV: ${{ inputs.scan_osv }}
+    INPUT_SCAN_SECRETS: ${{ inputs.scan_secrets }}
+    INPUT_SCAN_SAST: ${{ inputs.scan_sast }}
+    INPUT_FAIL_ON_FINDINGS: ${{ inputs.fail_on_findings }}
