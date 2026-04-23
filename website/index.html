@@ -241,6 +241,7 @@
   <div class="nav-links">
     <a href="#features">Features</a>
     <a href="#install">Install</a>
+    <a href="#github-action">GitHub Action</a>
     <a href="#checks">Checks</a>
     <a href="https://github.com/bobbydeveaux/guardian" class="btn-gh">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.58 2 12.26c0 4.54 2.87 8.39 6.84 9.75.5.09.68-.22.68-.49v-1.7c-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.1-1.5-1.1-1.5-.9-.63.07-.62.07-.62 1 .07 1.52 1.05 1.52 1.05.88 1.55 2.32 1.1 2.88.84.09-.65.35-1.1.63-1.35-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05A9.38 9.38 0 0112 7.58c.85 0 1.7.12 2.5.34 1.9-1.33 2.74-1.05 2.74-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.94.68 1.9v2.82c0 .27.18.59.69.49C19.13 20.65 22 16.8 22 12.26 22 6.58 17.52 2 12 2z"/></svg>
@@ -360,6 +361,104 @@
   </div>
 </section>
 
+<!-- GITHUB ACTION -->
+<section id="github-action" style="padding: 2rem 0 5rem;">
+  <div class="install-section" style="max-width:1080px; margin: 0 auto;">
+    <p class="section-label">CI / CD</p>
+    <h2 class="section-title">GitHub Action</h2>
+    <p class="section-sub" style="margin-bottom: 2rem;">
+      Run Guardian on every push and pull request. Two lines in your workflow — that's it.
+    </p>
+
+    <div class="install-tabs">
+      <span class="tab active" onclick="showActionTab('basic')">Basic</span>
+      <span class="tab" onclick="showActionTab('sast')">With AI SAST</span>
+      <span class="tab" onclick="showActionTab('options')">All Options</span>
+    </div>
+
+    <div id="action-basic" class="code-block">
+      <p class="comment"># .github/workflows/security.yml</p>
+      <p class="cmd-line">name: Security Scan</p>
+      <p class="cmd-line">on: [push, pull_request]</p>
+      <p></p>
+      <p class="cmd-line">jobs:</p>
+      <p class="cmd-line">  guardian:</p>
+      <p class="cmd-line">    runs-on: ubuntu-latest</p>
+      <p class="cmd-line">    steps:</p>
+      <p class="cmd-line">      - uses: actions/checkout@v4</p>
+      <p class="cmd-line">      - uses: bobbydeveaux/guardian@main</p>
+    </div>
+
+    <div id="action-sast" class="code-block" style="display:none;">
+      <p class="comment"># Enable Claude AI code analysis by adding your API key</p>
+      <p class="comment"># Add ANTHROPIC_API_KEY to your repo's Settings → Secrets</p>
+      <p></p>
+      <p class="cmd-line">      - uses: bobbydeveaux/guardian@main</p>
+      <p class="cmd-line">        with:</p>
+      <p class="cmd-line">          <span class="env-var">anthropic_api_key</span>: ${{ secrets.ANTHROPIC_API_KEY }}</p>
+    </div>
+
+    <div id="action-options" class="code-block" style="display:none;">
+      <p class="comment"># All available inputs with their defaults</p>
+      <p></p>
+      <p class="cmd-line">      - uses: bobbydeveaux/guardian@main</p>
+      <p class="cmd-line">        with:</p>
+      <p class="cmd-line">          <span class="env-var">anthropic_api_key</span>: ${{ secrets.ANTHROPIC_API_KEY }}</p>
+      <p class="cmd-line">          <span class="env-var">scan_osv</span>: "true"        <span class="comment"># Dependency CVE scanning</span></p>
+      <p class="cmd-line">          <span class="env-var">scan_secrets</span>: "true"    <span class="comment"># Secrets detection</span></p>
+      <p class="cmd-line">          <span class="env-var">scan_sast</span>: "true"       <span class="comment"># Claude AI analysis</span></p>
+      <p class="cmd-line">          <span class="env-var">fail_on_findings</span>: "true" <span class="comment"># Block on CRITICAL/secrets</span></p>
+    </div>
+
+    <table class="checks-table" style="margin-top: 2.5rem;">
+      <thead>
+        <tr>
+          <th>Input</th>
+          <th>Default</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>anthropic_api_key</code></td>
+          <td><span class="t-muted">""</span></td>
+          <td>Anthropic API key for Claude AI analysis. If omitted, SAST is skipped.</td>
+        </tr>
+        <tr>
+          <td><code>scan_osv</code></td>
+          <td><span class="t-ok">true</span></td>
+          <td>Enable OSV dependency vulnerability scanning</td>
+        </tr>
+        <tr>
+          <td><code>scan_secrets</code></td>
+          <td><span class="t-ok">true</span></td>
+          <td>Enable secrets detection</td>
+        </tr>
+        <tr>
+          <td><code>scan_sast</code></td>
+          <td><span class="t-ok">true</span></td>
+          <td>Enable Claude AI SAST analysis</td>
+        </tr>
+        <tr>
+          <td><code>fail_on_findings</code></td>
+          <td><span class="t-ok">true</span></td>
+          <td>Fail the workflow if CRITICAL issues or secrets are found</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<script>
+function showActionTab(tab) {
+  document.querySelectorAll('[id^="action-"]').forEach(el => el.style.display = 'none');
+  document.getElementById('action-' + tab).style.display = 'block';
+  const section = document.getElementById('github-action');
+  section.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+}
+</script>
+
 <!-- CHECKS -->
 <section class="section" id="checks">
   <p class="section-label">What it checks</p>
@@ -400,9 +499,10 @@
 <!-- CTA -->
 <section class="cta-section">
   <h2>Stop committing security debt</h2>
-  <p>Guardian is free, open-source, and takes 30 seconds to install.</p>
+  <p>Guardian is free, open-source, and takes 30 seconds to install — locally or in CI.</p>
   <div style="display:flex; gap:1rem; justify-content:center; flex-wrap:wrap;">
-    <a href="#install" class="btn-primary">Install Now</a>
+    <a href="#install" class="btn-primary">Install Locally</a>
+    <a href="#github-action" class="btn-primary" style="background: var(--blue);">Use GitHub Action</a>
     <a href="https://github.com/bobbydeveaux/guardian" class="btn-secondary">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.58 2 12.26c0 4.54 2.87 8.39 6.84 9.75.5.09.68-.22.68-.49v-1.7c-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.1-1.5-1.1-1.5-.9-.63.07-.62.07-.62 1 .07 1.52 1.05 1.52 1.05.88 1.55 2.32 1.1 2.88.84.09-.65.35-1.1.63-1.35-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05A9.38 9.38 0 0112 7.58c.85 0 1.7.12 2.5.34 1.9-1.33 2.74-1.05 2.74-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.94.68 1.9v2.82c0 .27.18.59.69.49C19.13 20.65 22 16.8 22 12.26 22 6.58 17.52 2 12 2z"/></svg>
       Star on GitHub
