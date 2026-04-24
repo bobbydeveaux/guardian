@@ -184,9 +184,10 @@
       border-radius: 8px; padding: 1.25rem 1.5rem;
       font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;
       overflow-x: auto; position: relative;
+      white-space: pre; line-height: 1.7;
+      margin: 0; color: var(--text);
     }
     .code-block .comment { color: var(--muted); }
-    .code-block .cmd-line { color: var(--text); }
     .code-block .env-var { color: var(--orange); }
 
     /* CHECKS TABLE */
@@ -346,18 +347,16 @@
       <span class="tab">Manual</span>
     </div>
 
-    <div class="code-block">
-      <p class="comment"># Install Guardian</p>
-      <p class="cmd-line">go install github.com/bobbydeveaux/guardian/app/cmd/guardian@latest</p>
-      <p></p>
-      <p class="comment"># Set your Anthropic API key (for AI SAST — optional)</p>
-      <p class="cmd-line"><span class="env-var">export</span> ANTHROPIC_API_KEY=sk-ant-...</p>
-      <p></p>
-      <p class="comment"># Install as a pre-commit hook in your repo</p>
-      <p class="cmd-line">guardian install</p>
-      <p></p>
-      <p class="comment"># That's it. Every commit is now scanned automatically.</p>
-    </div>
+    <pre class="code-block"><span class="comment"># Install Guardian</span>
+go install github.com/bobbydeveaux/guardian/app/cmd/guardian@latest
+
+<span class="comment"># Set your Anthropic API key (for AI SAST — optional)</span>
+<span class="env-var">export</span> ANTHROPIC_API_KEY=sk-ant-...
+
+<span class="comment"># Install as a pre-commit hook in your repo</span>
+guardian install
+
+<span class="comment"># That's it. Every commit is now scanned automatically.</span></pre>
   </div>
 </section>
 
@@ -376,39 +375,33 @@
       <span class="tab" onclick="showActionTab('options')">All Options</span>
     </div>
 
-    <div id="action-basic" class="code-block">
-      <p class="comment"># .github/workflows/security.yml</p>
-      <p class="cmd-line">name: Security Scan</p>
-      <p class="cmd-line">on: [push, pull_request]</p>
-      <p></p>
-      <p class="cmd-line">jobs:</p>
-      <p class="cmd-line">  guardian:</p>
-      <p class="cmd-line">    runs-on: ubuntu-latest</p>
-      <p class="cmd-line">    steps:</p>
-      <p class="cmd-line">      - uses: actions/checkout@v4</p>
-      <p class="cmd-line">      - uses: bobbydeveaux/guardian@main</p>
-    </div>
+    <pre id="action-basic" class="code-block"><span class="comment"># .github/workflows/security.yml</span>
+name: Security Scan
+on: [push, pull_request]
 
-    <div id="action-sast" class="code-block" style="display:none;">
-      <p class="comment"># Enable Claude AI code analysis by adding your API key</p>
-      <p class="comment"># Add ANTHROPIC_API_KEY to your repo's Settings → Secrets</p>
-      <p></p>
-      <p class="cmd-line">      - uses: bobbydeveaux/guardian@main</p>
-      <p class="cmd-line">        with:</p>
-      <p class="cmd-line">          <span class="env-var">anthropic_api_key</span>: ${{ secrets.ANTHROPIC_API_KEY }}</p>
-    </div>
+jobs:
+  guardian:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bobbydeveaux/guardian@main</pre>
 
-    <div id="action-options" class="code-block" style="display:none;">
-      <p class="comment"># All available inputs with their defaults</p>
-      <p></p>
-      <p class="cmd-line">      - uses: bobbydeveaux/guardian@main</p>
-      <p class="cmd-line">        with:</p>
-      <p class="cmd-line">          <span class="env-var">anthropic_api_key</span>: ${{ secrets.ANTHROPIC_API_KEY }}</p>
-      <p class="cmd-line">          <span class="env-var">scan_osv</span>: "true"        <span class="comment"># Dependency CVE scanning</span></p>
-      <p class="cmd-line">          <span class="env-var">scan_secrets</span>: "true"    <span class="comment"># Secrets detection</span></p>
-      <p class="cmd-line">          <span class="env-var">scan_sast</span>: "true"       <span class="comment"># Claude AI analysis</span></p>
-      <p class="cmd-line">          <span class="env-var">fail_on_findings</span>: "true" <span class="comment"># Block on CRITICAL/secrets</span></p>
-    </div>
+    <pre id="action-sast" class="code-block" style="display:none;"><span class="comment"># Enable Claude AI code analysis by adding your API key</span>
+<span class="comment"># Add ANTHROPIC_API_KEY to your repo's Settings → Secrets</span>
+
+      - uses: bobbydeveaux/guardian@main
+        with:
+          <span class="env-var">anthropic_api_key</span>: ${{ secrets.ANTHROPIC_API_KEY }}</pre>
+
+    <pre id="action-options" class="code-block" style="display:none;"><span class="comment"># All available inputs with their defaults</span>
+
+      - uses: bobbydeveaux/guardian@main
+        with:
+          <span class="env-var">anthropic_api_key</span>: ${{ secrets.ANTHROPIC_API_KEY }}
+          <span class="env-var">scan_osv</span>: "true"        <span class="comment"># Dependency CVE scanning</span>
+          <span class="env-var">scan_secrets</span>: "true"    <span class="comment"># Secrets detection</span>
+          <span class="env-var">scan_sast</span>: "true"       <span class="comment"># Claude AI analysis</span>
+          <span class="env-var">fail_on_findings</span>: "true" <span class="comment"># Block on CRITICAL/secrets</span></pre>
 
     <table class="checks-table" style="margin-top: 2.5rem;">
       <thead>
