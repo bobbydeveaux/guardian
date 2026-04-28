@@ -74,10 +74,31 @@ func ScanContent(filename, content string) []Finding {
 	return findings
 }
 
+// ignoreFiles are filename patterns to skip entirely (test fixtures, demo vuln files, etc.)
+var ignoreFilePatterns = []*regexp.Regexp{
+	regexp.MustCompile(`(?i)_test\.go$`),
+	regexp.MustCompile(`(?i)test_.*\.py$`),
+	regexp.MustCompile(`(?i)demo_vuln`),
+	regexp.MustCompile(`(?i)fixtures?[/\\]`),
+	regexp.MustCompile(`(?i)testdata[/\\]`),
+}
+
+func shouldIgnoreFile(filename string) bool {
+	for _, p := range ignoreFilePatterns {
+		if p.MatchString(filename) {
+			return true
+		}
+	}
+	return false
+}
+
 // ScanFiles scans a map of filename→content for secrets.
 func ScanFiles(files map[string]string) []Finding {
 	var all []Finding
 	for name, content := range files {
+		if shouldIgnoreFile(name) {
+			continue
+		}
 		all = append(all, ScanContent(name, content)...)
 	}
 	return all
