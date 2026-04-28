@@ -39,7 +39,7 @@ var rules = []rule{
 	{Name: "Basic Auth in URL", Pattern: regexp.MustCompile(`https?://[^:'">\s]+:[^@'">\s]{4,}@[^\s'"]+`)},
 }
 
-// ignorePatterns are lines to skip (test fixtures, examples, etc.)
+// ignorePatterns are lines to skip (test fixtures, examples, false positives, etc.)
 var ignorePatterns = []*regexp.Regexp{
 	regexp.MustCompile(`(?i)example`),
 	regexp.MustCompile(`(?i)placeholder`),
@@ -47,6 +47,8 @@ var ignorePatterns = []*regexp.Regexp{
 	regexp.MustCompile(`(?i)fake|dummy|mock|stub`),
 	regexp.MustCompile(`\bxxxx+\b`),
 	regexp.MustCompile(`<YOUR_`),
+	regexp.MustCompile(`fonts\.googleapis\.com`),
+	regexp.MustCompile(`fonts\.gstatic\.com`),
 }
 
 // ScanContent scans the content of a single file for secrets.
