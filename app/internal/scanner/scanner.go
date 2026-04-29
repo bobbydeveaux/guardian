@@ -2,6 +2,7 @@
 package scanner
 
 import (
+	"bufio"
 	"fmt"
 	"io/fs"
 	"os"
@@ -49,17 +50,64 @@ var sourceExtensions = map[string]bool{
 	".toml": true, ".tf": true, ".rs": true, ".kt": true, ".swift": true,
 }
 
-func isIgnoredPath(path string) bool {
-	for _, dir := range ignoredDirs {
-		if strings.HasPrefix(path, dir) || strings.Contains(path, "/"+dir) {
-			return true
+// loadIgnoreFile reads a .guardianignore file from the given root directory.
+// It returns a slice of patterns (one per line). Blank lines and lines starting
+// with '#' are skipped. If the file does not exist, it returns nil with no error.
+func loadIgnoreFile(root string) []string {
+	f, err := os.Open(filepath.Join(root, ".guardianignore"))
+	if err != nil {
+		return nil
+	}
+	defer f.Close()
+
+	var patterns []string
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		patterns = append(patterns, line)
+	}
+	return patterns
+}
+
+// matchesIgnorePattern checks whether a relative path matches any of the user-
+// supplied ignore patterns. Directory patterns (ending with '/') match via
+// prefix; other patterns are matched as file globs against the base name.
+func matchesIgnorePattern(relPath string, patterns []string) bool {
+	for _, p := range patterns {
+		if strings.HasSuffix(p, "/") {
+			// Directory pattern — match if path starts with the dir or contains it as a component.
+			dir := p // e.g. "web/"
+			if strings.HasPrefix(relPath, dir) || strings.Contains(relPath, "/"+dir) {
+				return true
+			}
+		} else {
+			// Glob pattern — match against the file's base name.
+			base := filepath.Base(relPath)
+			if matched, _ := filepath.Match(p, base); matched {
+				return true
+			}
 		}
 	}
 	return false
 }
 
+func isIgnoredPath(path string, userPatterns []string) bool {
+	for _, dir := range ignoredDirs {
+		if strings.HasPrefix(path, dir) || strings.Contains(path, "/"+dir) {
+			return true
+		}
+	}
+	if matchesIgnorePattern(path, userPatterns) {
+		return true
+	}
+	return false
+}
+
 // walkAllFiles walks the directory tree from root, returning all non-ignored, non-binary file paths.
-func walkAllFiles(root string) ([]string, error) {
+func walkAllFiles(root string, userPatterns []string) ([]string, error) {
 	var files []string
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -68,12 +116,12 @@ func walkAllFiles(root string) ([]string, error) {
 		// Make path relative to root for consistent filtering
 		rel, _ := filepath.Rel(root, path)
 		if d.IsDir() {
-			if isIgnoredPath(rel + "/") {
+			if isIgnoredPath(rel+"/", userPatterns) {
 				return filepath.SkipDir
 			}
 			return nil
 		}
-		if !isIgnoredPath(rel) {
+		if !isIgnoredPath(rel, userPatterns) {
 			files = append(files, rel)
 		}
 		return nil
@@ -96,15 +144,17 @@ func Run(opts Options) (report.Results, error) {
 	var results report.Results
 	results.FullScan = opts.Full
 
+	// Load .guardianignore patterns from the repo root.
+	root, rootErr := git.RepoRoot()
+	if rootErr != nil {
+		root, _ = os.Getwd()
+	}
+	userPatterns := loadIgnoreFile(root)
+
 	var files []string
-	var err error
 
 	if opts.Full {
-		root, rootErr := git.RepoRoot()
-		if rootErr != nil {
-			root, _ = os.Getwd()
-		}
-		relFiles, walkErr := walkAllFiles(root)
+		relFiles, walkErr := walkAllFiles(root, userPatterns)
 		if walkErr != nil {
 			return results, fmt.Errorf("could not walk repo: %w", walkErr)
 		}
@@ -114,9 +164,15 @@ func Run(opts Options) (report.Results, error) {
 			files[i] = filepath.Join(root, f)
 		}
 	} else {
-		files, err = git.StagedFiles()
-		if err != nil {
-			return results, fmt.Errorf("could not list staged files: %w", err)
+		staged, stagedErr := git.StagedFiles()
+		if stagedErr != nil {
+			return results, fmt.Errorf("could not list staged files: %w", stagedErr)
+		}
+		// Filter staged files against .guardianignore patterns.
+		for _, f := range staged {
+			if !matchesIgnorePattern(f, userPatterns) {
+				files = append(files, f)
+			}
 		}
 	}
 
