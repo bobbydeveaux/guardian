@@ -1,4 +1,4 @@
-# Guardian — Local Pre-Commit Security Scanner
+# Guardian — Pre-Commit Security Scanner
 
 > A fast, local security scanner inspired by Checkmarx/Snyk. Runs in milliseconds before every commit.
 
