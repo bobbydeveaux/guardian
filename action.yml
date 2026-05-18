@@ -1,10 +1,11 @@
 name: "Guardian Security Scanner"
 description: "Scan your repository for dependency CVEs, hardcoded secrets, and code-level security issues powered by Claude AI"
 author: "Bobby DeVeaux"
-# Pricing and plan listing — surfaced on the GitHub Marketplace listing
-# page (agentops-014). Override before submission once the marketing site
-# moves off the StackRamp preview domain.
-url: "https://guardian.stackramp.io"
+# Marketplace listing URL and pricing plans are configured in the
+# GitHub Marketplace listing UI (github.com/marketplace/manage), NOT in
+# action.yml - `url` is not part of the GitHub Action metadata schema
+# and would be rejected as an unexpected value before the Docker action
+# runs. See agentops-014 review feedback for context.
 
 branding:
   icon: "shield"
