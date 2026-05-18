@@ -1,6 +1,10 @@
 name: "Guardian Security Scanner"
 description: "Scan your repository for dependency CVEs, hardcoded secrets, and code-level security issues powered by Claude AI"
 author: "Bobby DeVeaux"
+# Pricing and plan listing — surfaced on the GitHub Marketplace listing
+# page (agentops-014). Override before submission once the marketing site
+# moves off the StackRamp preview domain.
+url: "https://guardian.stackramp.io"
 
 branding:
   icon: "shield"

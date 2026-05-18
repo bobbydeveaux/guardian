@@ -1,0 +1,44 @@
+# Guardian GitHub Marketplace billing webhook — Cloud Run image.
+#
+# Multi-stage build:
+#   1. Compile the stdlib-only webhook binary against the same Go module as
+#      the main CLI.
+#   2. Copy the static binary into a distroless nonroot image so the
+#      runtime layer has no shell, no package manager, and no Go toolchain.
+#
+# Build locally:
+#   docker build -f Dockerfile.webhook -t guardian-webhook .
+# Run locally:
+#   docker run -e GITHUB_WEBHOOK_SECRET=test-secret -e PORT=8080 -p 8080:8080 guardian-webhook
+
+# ---- build stage ----
+FROM golang:1.25-alpine AS builder
+
+WORKDIR /src
+
+# Module manifest first so go mod download is cached separately from source.
+COPY app/go.mod app/go.sum ./
+RUN go mod download
+
+COPY app/ ./
+
+# CGO_ENABLED=0 → fully static binary suitable for distroless static.
+# -trimpath + -ldflags='-s -w' → smaller image, no local paths leaked.
+RUN CGO_ENABLED=0 GOOS=linux go build \
+    -trimpath \
+    -ldflags="-s -w" \
+    -o /out/webhook \
+    ./cmd/webhook
+
+# ---- runtime stage ----
+FROM gcr.io/distroless/static-debian12:nonroot
+
+COPY --from=builder /out/webhook /webhook
+
+# Cloud Run conventions:
+#   * Listen on $PORT (default 8080 in the binary itself).
+#   * Run as a non-root user (provided by distroless nonroot).
+EXPOSE 8080
+
+USER nonroot:nonroot
+ENTRYPOINT ["/webhook"]
