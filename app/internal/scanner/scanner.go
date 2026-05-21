@@ -144,46 +144,73 @@ func Run(opts Options) (report.Results, error) {
 	var results report.Results
 	results.FullScan = opts.Full
 
-	// Load .guardianignore patterns from the repo root.
-	root, rootErr := git.RepoRoot()
-	if rootErr != nil {
-		root, _ = os.Getwd()
+	files, err := resolveScanFiles(opts)
+	if err != nil {
+		return results, err
 	}
-	userPatterns := loadIgnoreFile(root)
-
-	var files []string
-
-	if opts.Full {
-		relFiles, walkErr := walkAllFiles(root, userPatterns)
-		if walkErr != nil {
-			return results, fmt.Errorf("could not walk repo: %w", walkErr)
-		}
-		// Store absolute paths so os.ReadFile works regardless of CWD
-		files = make([]string, len(relFiles))
-		for i, f := range relFiles {
-			files[i] = filepath.Join(root, f)
-		}
-	} else {
-		staged, stagedErr := git.StagedFiles()
-		if stagedErr != nil {
-			return results, fmt.Errorf("could not list staged files: %w", stagedErr)
-		}
-		// Filter staged files against .guardianignore patterns.
-		for _, f := range staged {
-			if !matchesIgnorePattern(f, userPatterns) {
-				files = append(files, f)
-			}
-		}
-	}
-
 	results.StagedFiles = files
 
 	if len(files) == 0 {
 		return results, nil
 	}
 
-	// Load file contents
-	fileContents := make(map[string]string)
+	fileContents := loadFileContents(opts, files)
+
+	if opts.OSV {
+		runOSV(fileContents, &results)
+	}
+
+	if opts.Secrets {
+		results.SecretFindings = secrets.ScanFiles(fileContents)
+	}
+
+	if opts.SAST {
+		runSAST(opts, fileContents, &results)
+	}
+
+	return results, nil
+}
+
+// resolveScanFiles determines which files to scan based on the mode (full or
+// staged) and the .guardianignore patterns at the repo root.
+func resolveScanFiles(opts Options) ([]string, error) {
+	root, rootErr := git.RepoRoot()
+	if rootErr != nil {
+		root, _ = os.Getwd()
+	}
+	userPatterns := loadIgnoreFile(root)
+
+	if opts.Full {
+		relFiles, walkErr := walkAllFiles(root, userPatterns)
+		if walkErr != nil {
+			return nil, fmt.Errorf("could not walk repo: %w", walkErr)
+		}
+		// Store absolute paths so os.ReadFile works regardless of CWD.
+		files := make([]string, len(relFiles))
+		for i, f := range relFiles {
+			files[i] = filepath.Join(root, f)
+		}
+		return files, nil
+	}
+
+	staged, stagedErr := git.StagedFiles()
+	if stagedErr != nil {
+		return nil, fmt.Errorf("could not list staged files: %w", stagedErr)
+	}
+	files := make([]string, 0, len(staged))
+	for _, f := range staged {
+		if !matchesIgnorePattern(f, userPatterns) {
+			files = append(files, f)
+		}
+	}
+	return files, nil
+}
+
+// loadFileContents reads the contents of every non-binary file using either
+// the full-tree or staged-blob git accessor. Unreadable files are silently
+// skipped, matching the original Run behaviour.
+func loadFileContents(opts Options, files []string) map[string]string {
+	fileContents := make(map[string]string, len(files))
 	for _, f := range files {
 		if isBinary(f) {
 			continue
@@ -199,66 +226,72 @@ func Run(opts Options) (report.Results, error) {
 			fileContents[f] = content
 		}
 	}
+	return fileContents
+}
 
-	// OSV — scan manifest files
-	if opts.OSV {
-		var packages []osv.Package
-		for filename, content := range fileContents {
-			pkgs := osv.ParseManifest(filename, content)
-			packages = append(packages, pkgs...)
-		}
-		if len(packages) > 0 {
-			fmt.Printf("  → Checking %d packages against OSV database...\n", len(packages))
-			findings, err := osv.ScanPackages(packages)
-			if err == nil {
-				results.OSVFindings = findings
-			}
-		}
+// runOSV parses every file as a manifest and queries the OSV database for
+// each discovered package. Errors are swallowed to match original behaviour.
+func runOSV(fileContents map[string]string, results *report.Results) {
+	var packages []osv.Package
+	for filename, content := range fileContents {
+		pkgs := osv.ParseManifest(filename, content)
+		packages = append(packages, pkgs...)
 	}
-
-	// Secrets — scan all non-binary files
-	if opts.Secrets {
-		results.SecretFindings = secrets.ScanFiles(fileContents)
+	if len(packages) == 0 {
+		return
 	}
+	fmt.Printf("  → Checking %d packages against OSV database...\n", len(packages))
+	findings, err := osv.ScanPackages(packages)
+	if err == nil {
+		results.OSVFindings = findings
+	}
+}
 
-	// SAST
-	if opts.SAST {
-		if opts.Full {
-			// Filter to source files only to keep batches focused
-			sourceFiles := make(map[string]string)
-			for name, content := range fileContents {
-				if isSourceFile(name) {
-					sourceFiles[name] = content
-				}
-			}
-			if len(sourceFiles) == 0 {
-				results.SASTSkipped = true
-			} else {
-				fmt.Printf("  → Running Claude AI analysis on %d source file(s)...\n", len(sourceFiles))
-				findings, err := sast.AnalyseFiles(sourceFiles)
-				if err != nil {
-					results.SASTSkipped = true
-					results.SASTError = err.Error()
-				} else {
-					results.SASTFindings = findings
-				}
-			}
-		} else {
-			diff, err := git.StagedDiff()
-			if err != nil || strings.TrimSpace(diff) == "" {
-				results.SASTSkipped = true
-			} else {
-				fmt.Println("  → Running Claude AI code analysis...")
-				findings, err := sast.AnalyseDiff(diff)
-				if err != nil {
-					results.SASTSkipped = true
-					results.SASTError = err.Error()
-				} else {
-					results.SASTFindings = findings
-				}
-			}
+// runSAST dispatches the SAST step to either the full-mode (file-based) or
+// staged-mode (diff-based) Claude analyser.
+func runSAST(opts Options, fileContents map[string]string, results *report.Results) {
+	if opts.Full {
+		runSASTFull(fileContents, results)
+		return
+	}
+	runSASTStaged(results)
+}
+
+// runSASTFull filters to source files and asks Claude to analyse them.
+func runSASTFull(fileContents map[string]string, results *report.Results) {
+	sourceFiles := make(map[string]string)
+	for name, content := range fileContents {
+		if isSourceFile(name) {
+			sourceFiles[name] = content
 		}
 	}
+	if len(sourceFiles) == 0 {
+		results.SASTSkipped = true
+		return
+	}
+	fmt.Printf("  → Running Claude AI analysis on %d source file(s)...\n", len(sourceFiles))
+	findings, err := sast.AnalyseFiles(sourceFiles)
+	if err != nil {
+		results.SASTSkipped = true
+		results.SASTError = err.Error()
+		return
+	}
+	results.SASTFindings = findings
+}
 
-	return results, nil
+// runSASTStaged asks Claude to analyse the staged diff.
+func runSASTStaged(results *report.Results) {
+	diff, err := git.StagedDiff()
+	if err != nil || strings.TrimSpace(diff) == "" {
+		results.SASTSkipped = true
+		return
+	}
+	fmt.Println("  → Running Claude AI code analysis...")
+	findings, err := sast.AnalyseDiff(diff)
+	if err != nil {
+		results.SASTSkipped = true
+		results.SASTError = err.Error()
+		return
+	}
+	results.SASTFindings = findings
 }
