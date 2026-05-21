@@ -1,0 +1,16 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    permissions:
+      id-token: write       # required for WIF / GCP auth
+      contents: read        # required to checkout code
+      pull-requests: write  # required to post PR preview URLs
+    uses: bobbydeveaux/stackramp/.github/workflows/platform.yml@main
+    secrets: inherit

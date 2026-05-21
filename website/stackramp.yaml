@@ -1,0 +1,7 @@
+name: guardian
+
+frontend:
+  framework: static
+  dir: website
+
+database: false

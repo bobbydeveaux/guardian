@@ -1,0 +1,8 @@
+{
+  "name": "guardian-website",
+  "version": "1.0.0",
+  "description": "Guardian security scanner landing page",
+  "scripts": {
+    "build": "mkdir -p dist && cp index.html dist/"
+  }
+}

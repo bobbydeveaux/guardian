@@ -1,0 +1,14 @@
+name: guardian
+
+domain: guardian.stackramp.io
+
+frontend:
+  framework: static
+  dir: website
+
+database: false
+
+quality:
+  max_ccn: 30
+  max_cognitive: 60
+  max_duplication: 10
