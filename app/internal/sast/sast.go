@@ -10,7 +10,8 @@ import (
 	"strings"
 )
 
-const anthropicAPI = "https://api.anthropic.com/v1/messages"
+// anthropicAPI is the messages endpoint. It is a var so tests can point it at an httptest server.
+var anthropicAPI = "https://api.anthropic.com/v1/messages"
 
 // Finding is a code-level security issue identified by Claude.
 type Finding struct {
