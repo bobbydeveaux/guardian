@@ -9,7 +9,8 @@ import (
 	"strings"
 )
 
-const osvAPI = "https://api.osv.dev/v1/query"
+// osvAPI is the query endpoint. It is a var so tests can point it at an httptest server.
+var osvAPI = "https://api.osv.dev/v1/query"
 
 // Finding is a matched vulnerability for a package.
 type Finding struct {

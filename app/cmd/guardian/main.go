@@ -18,6 +18,10 @@ var (
 	fullScan  bool
 )
 
+// exitFunc is the process exit hook. It is a var so tests can swap it without
+// terminating the test binary.
+var exitFunc = os.Exit
+
 var rootCmd = &cobra.Command{
 	Use:   "guardian",
 	Short: "Guardian — local pre-commit security scanner",
@@ -67,7 +71,7 @@ func runCheck(cmd *cobra.Command, args []string) error {
 	}
 
 	report.Print(results)
-	os.Exit(report.ExitCode(results))
+	exitFunc(report.ExitCode(results))
 	return nil
 }
 
