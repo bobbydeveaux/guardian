@@ -83,8 +83,15 @@ func matchesIgnorePattern(relPath string, patterns []string) bool {
 			if strings.HasPrefix(relPath, dir) || strings.Contains(relPath, "/"+dir) {
 				return true
 			}
+		} else if strings.Contains(p, "/") {
+			// Path-anchored pattern (contains a slash) — match against the
+			// full relative path, gitignore-style. e.g. "backend/README.md"
+			// matches backend/README.md but not other/README.md.
+			if matched, _ := filepath.Match(p, relPath); matched {
+				return true
+			}
 		} else {
-			// Glob pattern — match against the file's base name.
+			// Bare glob — match against the file's base name, anywhere.
 			base := filepath.Base(relPath)
 			if matched, _ := filepath.Match(p, base); matched {
 				return true

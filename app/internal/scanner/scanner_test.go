@@ -60,7 +60,7 @@ func TestIsSourceFile(t *testing.T) {
 }
 
 func TestMatchesIgnorePattern(t *testing.T) {
-	patterns := []string{"build/", "*.log", "secrets.env"}
+	patterns := []string{"build/", "*.log", "secrets.env", "backend/README.md", "docs/*.md"}
 	cases := []struct {
 		path string
 		want bool
@@ -73,6 +73,11 @@ func TestMatchesIgnorePattern(t *testing.T) {
 		{"secrets.env", true},               // exact base match
 		{"infra/secrets.env", true},         // base name match
 		{"infra/secrets.env.example", false}, // base doesn't match
+		{"backend/README.md", true},         // path-anchored subdir file (the fix)
+		{"other/README.md", false},          // same base, wrong dir → NOT ignored
+		{"README.md", false},                // root README not ignored by subdir pattern
+		{"docs/guide.md", true},             // path-anchored glob in a subdir
+		{"src/guide.md", false},             // glob only anchored to docs/
 	}
 	for _, c := range cases {
 		if got := matchesIgnorePattern(c.path, patterns); got != c.want {
