@@ -49,6 +49,12 @@ var ignorePatterns = []*regexp.Regexp{
 	regexp.MustCompile(`<YOUR_`),
 	regexp.MustCompile(`fonts\.googleapis\.com`),
 	regexp.MustCompile(`fonts\.gstatic\.com`),
+	// Shell/compose/template variable interpolation as the VALUE — e.g.
+	// PASSWORD="${MT5_PASSWORD:-}" or password: "{{ .Values.pw }}" — is an
+	// env passthrough, not a hardcoded secret.
+	regexp.MustCompile(`['"]\s*\$\{[A-Za-z_]`),
+	regexp.MustCompile(`['"]\s*\{\{`),
+	regexp.MustCompile(`['"]\s*\$[A-Za-z_][A-Za-z0-9_]*\s*['"]`),
 }
 
 // ScanContent scans the content of a single file for secrets.
