@@ -1,0 +1,58 @@
+name: Publish image
+
+# Publishes the action's container to GHCR so workflows can run it prebuilt
+# (uses: docker://ghcr.io/bobbydeveaux/guardian:main) instead of building this
+# Dockerfile on every run. StackRamp's platform workflow uses :main.
+#   :main        — latest main (what StackRamp runs)
+#   :sha-<short> — immutable, for pinning or rollback
+# The package must be public (GitHub → Packages → guardian → settings → visibility)
+# so other repos' workflows can pull it without credentials.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "Dockerfile"
+      - "entrypoint.sh"
+      - ".github/workflows/publish-image.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: publish-image
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build
+        run: |
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"
+          SHORT="${GITHUB_SHA::7}"
+          docker build -t "$IMAGE:sha-$SHORT" .
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+          echo "SHORT=$SHORT" >> "$GITHUB_ENV"
+
+      - name: Smoke test
+        run: docker run --rm --entrypoint sh "$IMAGE:sha-$SHORT" -c 'command -v guardian && command -v git && test -x /entrypoint.sh'
+
+      - name: Push
+        run: |
+          docker tag "$IMAGE:sha-$SHORT" "$IMAGE:main"
+          docker push "$IMAGE:sha-$SHORT"
+          docker push "$IMAGE:main"
+          echo "Published $IMAGE:main and $IMAGE:sha-$SHORT" >> "$GITHUB_STEP_SUMMARY"
